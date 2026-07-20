@@ -14,6 +14,9 @@ qt_add_executable(vet_server
     main.cpp
     database/database.h database/database.cpp
     server/server.h server/server.cpp
+    auth/authservice.h auth/authservice.cpp
+    database/models.h
+
 )
 
 target_link_libraries(vet_server

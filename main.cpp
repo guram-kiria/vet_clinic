@@ -13,8 +13,8 @@
 #include <QtSql/QSqlError>
 #include <QtSql/QSqlQuery>
 
-#include "database.h"
-#include "server.h"
+#include "database/database.h"
+#include "server/server.h"
 
 
 int main(int argc, char *argv[])

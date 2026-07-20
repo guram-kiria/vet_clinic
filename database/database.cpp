@@ -1,14 +1,17 @@
 #include "database.h"
 
 #include <QDebug>
+#include <qdatetime.h>
+#include <quuid.h>
 
-Database::Database() {}
+Database::Database() {
+
+    db = QSqlDatabase::addDatabase("QPSQL", "vet_connection");
+}
 
 bool Database::connect()
 {
     qDebug() << "connecting to the database";
-
-    db = QSqlDatabase::addDatabase ("QPSQL");
 
     db.setHostName("127.0.0.1");
     db.setPort(5432);
@@ -27,29 +30,59 @@ bool Database::connect()
     return true;
 }
 
-void Database::testQuery()
+QString Database::createSession(int userId)
 {
-    QSqlQuery query;
+    QString token = QUuid::createUuid().toString();
 
-    query.exec(
-        "CREATE TABLE IF NOT EXISTS patients ("
-        "id SERIAL PRIMARY KEY,"
-        "name TEXT,"
-        "species TEXT"
-        ")"
-    );
+    QSqlQuery query(db);
 
-    query.exec(
-        "INSERT INTO patients(name, species)"
-        "VALUES('Buddy', 'dog')"
-    );
+    query.prepare(R"(
+        INSERT INTO sessions
+        (user_id, token, expires_at)
+        VALUES
+        (:user_id, :token, :expires_at)
+    )");
 
-    while(query.next()){
-        int id = query.value("id").toInt();
-        QString name = query.value("name").toString();
-        QString species = query.value("species").toString();
+    query.bindValue(":user_id", userId);
+    query.bindValue(":token", token);
+    query.bindValue(":expires_at",
+                    QDateTime::currentDateTime().addDays(30));
 
-        qDebug() << id << name << species;
+    if (!query.exec())
+    {
+        qDebug() << query.lastError().text();
+        return "";
     }
+
+    return token;
+}
+
+std::optional<Database::User> Database::getUser(const QString& username)
+{
+    QSqlQuery query(QSqlDatabase::database("vet_connection"));
+
+    QString sql = QString(
+        "SELECT id, username, password_hash, role "
+        "FROM users "
+        "WHERE username = '%1'"
+    ).arg(username);
+
+
+
+    if (!query.exec(sql))
+        return std::nullopt;
+
+    if (!query.next())
+        return std::nullopt;
+
+    User user;
+
+    user.id = query.value(0).toInt();
+    user.username = query.value(1).toString();
+    user.passwordHash = query.value(2).toString();
+    user.role = query.value(3).toString();
+    qDebug() << "password hash" << user.passwordHash;
+
+    return user;
 }
 

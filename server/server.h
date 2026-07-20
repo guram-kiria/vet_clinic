@@ -5,6 +5,8 @@
 #include <QHttpServer>
 #include <QTcpServer>
 
+#include "../auth/authservice.h"
+
 class Database;
 
 class Server
@@ -19,6 +21,9 @@ private:
     QTcpServer tcpServer;
 
     Database* database;
+    std::unique_ptr<AuthService> authService;
+
+    void registerAuthRoutes(QHttpServer& server, AuthService& authService);
 };
 
 #endif // SERVER_H
